@@ -44,10 +44,10 @@
   "homepage": "https://docs.nexara.ru",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/nexara/nexara-ts-sdk.git"
+    "url": "git+https://github.com/rootint/nexara-ts-sdk.git"
   },
   "bugs": {
-    "url": "https://github.com/nexara/nexara-ts-sdk/issues"
+    "url": "https://github.com/rootint/nexara-ts-sdk/issues"
   },
   "dependencies": {
     "ajv": "^8.17.0"
