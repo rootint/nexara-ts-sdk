@@ -1,0 +1,63 @@
+/**
+ * TypeScript SDK for the Nexara speech-to-text API.
+ *
+ * A single async client (`Nexara`) talks to the API over fetch. Realtime is
+ * not yet available. See docs/design.md.
+ */
+
+export const VERSION = "0.1.0";
+
+export { Nexara, DEFAULT_BASE_URL } from "./client.js";
+export type { NexaraOptions } from "./client.js";
+
+export {
+  NexaraError,
+  NexaraValidationError,
+  APIError,
+  BadRequestError,
+  InsufficientBalanceError,
+  AuthenticationError,
+  NotFoundError,
+  RateLimitError,
+  InternalServerError,
+  APIConnectionError,
+  APITimeoutError,
+  JobFailedError,
+  JobTimeoutError,
+} from "./errors.js";
+
+export type {
+  Task,
+  ResponseFormat,
+  Granularity,
+  Roles,
+  CreateParams,
+} from "./validation.js";
+
+export { Transcriptions } from "./resources/transcriptions.js";
+export type {
+  CreateLLMParams,
+  CreateDiarizeParams,
+  CreateDiarizeStringParams,
+  CreateVerboseParams,
+  CreateStringParams,
+  CreateJsonParams,
+} from "./resources/transcriptions.js";
+
+export { Realtime, RealtimeSession } from "./resources/realtime.js";
+
+export { Job, DEFAULT_WAIT_TIMEOUT_MS } from "./types/job.js";
+export type { JobStatus, JobFields, WaitOptions } from "./types/job.js";
+
+export type {
+  Word,
+  Segment,
+  Sentence,
+  Transcription,
+  VerboseTranscription,
+  LLMResult,
+} from "./types/transcription.js";
+export type { DiarizedWord, DiarizedSegment, Diarization } from "./types/diarization.js";
+export type { RealtimeEvent } from "./types/realtime.js";
+
+export type { Transport, TransportResponse, RequestOptions, FileInput } from "./transport.js";

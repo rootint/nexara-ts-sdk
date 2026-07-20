@@ -1,0 +1,16 @@
+# Dependencies / build
+node_modules/
+dist/
+
+# Local test audio (do not ship samples)
+test.mp3
+*.wav
+*.m4a
+
+# OS junk
+.DS_Store
+
+# Env / secrets
+.env
+
+docs/
