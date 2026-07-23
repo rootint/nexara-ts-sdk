@@ -52,6 +52,19 @@ export class AuthenticationError extends APIError {}
 /** 404. */
 export class NotFoundError extends APIError {}
 
+/**
+ * 413 — the synchronous LLM enrichment step ran out of time.
+ *
+ * Only the sync `create()` path with a `prompt` throws this, and only on long
+ * audio. Despite the HTTP status, it is *not* about payload size: the
+ * transcription itself succeeded, but the LLM post-processing could not finish
+ * within the synchronous time budget.
+ *
+ * Do not retry synchronously — it will time out again. Resubmit the identical
+ * request through `createJob()`, where the LLM step gets a far larger timeout.
+ */
+export class SyncLLMTimeoutError extends APIError {}
+
 /** 429 — 10 req/sec per endpoint, or more than 200 in-progress jobs per key. */
 export class RateLimitError extends APIError {}
 
@@ -63,6 +76,15 @@ export class RateLimitError extends APIError {}
  * indistinguishable from the response body.
  */
 export class InternalServerError extends APIError {}
+
+/**
+ * 502 — the LLM provider genuinely failed (empty or invalid output).
+ *
+ * Distinct from `SyncLLMTimeoutError` (413), which is a timeout you recover from
+ * by switching to async mode: here the enrichment provider returned nothing
+ * usable. Treat it as an ordinary server error and retry later.
+ */
+export class BadGatewayError extends APIError {}
 
 /** The request never reached the server. */
 export class APIConnectionError extends NexaraError {}
@@ -107,8 +129,10 @@ const STATUS_MAP: Record<number, new (status: number, detail: string) => APIErro
   402: InsufficientBalanceError,
   403: AuthenticationError,
   404: NotFoundError,
+  413: SyncLLMTimeoutError,
   429: RateLimitError,
   500: InternalServerError,
+  502: BadGatewayError,
 };
 
 export function errorForStatus(statusCode: number, detail: string): APIError {

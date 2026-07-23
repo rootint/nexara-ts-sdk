@@ -11,7 +11,13 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { Nexara } from "../src/index.js";
-import { APIConnectionError, APITimeoutError, InternalServerError } from "../src/errors.js";
+import {
+  APIConnectionError,
+  APITimeoutError,
+  BadGatewayError,
+  InternalServerError,
+  SyncLLMTimeoutError,
+} from "../src/errors.js";
 import { FetchTransport } from "../src/http.js";
 import type { HttpxTransportOptions } from "../src/http.js";
 
@@ -235,6 +241,23 @@ describe("retry policy", () => {
     expect(n).toBe(1); // billed-before-500 hazard: never retried
   });
 
+  it("does not retry 413", async () => {
+    let n = 0;
+    const handler: Handler = () => {
+      n += 1;
+      return new Response(
+        JSON.stringify({ detail: "The synchronous LLM request timed out. Use async mode for long audio." }),
+        { status: 413, headers: { "content-type": "application/json" } },
+      );
+    };
+
+    const resp = await transport(handler, { maxRetries: 3 }).request("POST", "/x", {
+      file: new Uint8Array([1]),
+    });
+    expect(resp.status_code).toBe(413);
+    expect(n).toBe(1); // retrying sync just times out again — switch to async instead
+  });
+
   it("retries connection errors then throws", async () => {
     let n = 0;
     const handler: Handler = () => {
@@ -299,5 +322,25 @@ describe("end to end", () => {
     await expect(nx.transcriptions.create({ file: new Uint8Array([1]) })).rejects.toBeInstanceOf(
       InternalServerError,
     );
+  });
+
+  it("413 surfaces as SyncLLMTimeoutError", async () => {
+    const handler: Handler = () =>
+      new Response(
+        JSON.stringify({ detail: "The synchronous LLM request timed out. Use async mode for long audio." }),
+        { status: 413, headers: { "content-type": "application/json" } },
+      );
+    const nx = new Nexara({ apiKey: "k", transport: transport(handler) });
+    await expect(
+      nx.transcriptions.create({ file: new Uint8Array([1]), prompt: "summarize" }),
+    ).rejects.toBeInstanceOf(SyncLLMTimeoutError);
+  });
+
+  it("502 surfaces as BadGatewayError", async () => {
+    const handler: Handler = () => new Response("bad gateway", { status: 502 });
+    const nx = new Nexara({ apiKey: "k", transport: transport(handler) });
+    await expect(
+      nx.transcriptions.create({ file: new Uint8Array([1]), prompt: "summarize" }),
+    ).rejects.toBeInstanceOf(BadGatewayError);
   });
 });
