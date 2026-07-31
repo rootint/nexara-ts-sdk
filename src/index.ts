@@ -5,7 +5,7 @@
  * not yet available. See docs/design.md.
  */
 
-export const VERSION = "0.2.0";
+export const VERSION = "0.3.0";
 
 export { Nexara, DEFAULT_BASE_URL } from "./client.js";
 export type { NexaraOptions } from "./client.js";
