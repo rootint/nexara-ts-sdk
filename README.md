@@ -1,8 +1,8 @@
 # Nexara TypeScript SDK
 
 TypeScript/JavaScript SDK for the [Nexara](https://nexara.ru) speech-to-text
-API: transcription, speaker diarization, speaker role tagging, and structured
-LLM post-processing. Full API documentation lives at
+API: transcription, speaker diarization, speaker role tagging, structured
+LLM post-processing, and account billing. Full API documentation lives at
 [docs.nexara.ru](https://docs.nexara.ru).
 
 Requires Node.js 20+. Fully typed; ships its own `.d.ts`.
@@ -78,6 +78,34 @@ const result = await client.transcriptions.create({
 console.log(result.llm_output); // object, validated against your schema
 console.log(result.transcription.text); // the transcript it was derived from
 ```
+
+## Balance and usage
+
+`client.billing` reports what is on the account and what it has been spent on.
+Both endpoints cover the whole account, not just the key you authenticate with:
+
+```ts
+const balance = await client.billing.balance();
+console.log(balance.balance, balance.currency, balance.rate_per_min);
+
+// One page of billed calls, newest first.
+const page = await client.billing.usage({ limit: 20 });
+for (const item of page.items) {
+  console.log(item.timestamp, item.task, item.cost, item.api_key.name);
+}
+
+// ...or let the SDK walk the pages. History is unbounded — bound it.
+for await (const item of client.billing.iterUsage({ maxItems: 200 })) {
+  console.log(item.request_id, item.seconds, item.cost);
+}
+```
+
+Paging is keyset-based, not offset-based: pass a page's `next_cursor` as
+`cursor` to get the next (older) page, so calls arriving mid-walk cannot shift
+rows across a page boundary. `item.cost` is `null` — not `0` — for rows written
+before per-request costs were recorded, and `rate_per_min` covers plain
+transcription only (`profanity_filter`, `roles` and `prompt` are surcharges on
+top of it).
 
 ## Errors and validation
 

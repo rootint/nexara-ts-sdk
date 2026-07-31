@@ -61,7 +61,35 @@ export class MockTransport implements Transport {
       return this.#pollJob(match.groups!["jobId"]!);
     }
 
+    if (method === "GET" && path === "/billing/balance") {
+      return { status_code: 200, body: fixtures.buildBalance() };
+    }
+
+    if (method === "GET" && path === "/billing/usage") {
+      return this.#usage(options.query ?? {});
+    }
+
     return { status_code: 404, body: { detail: `Not Found: ${method} ${path}` } };
+  }
+
+  // -- billing -----------------------------------------------------------
+
+  /**
+   * One page of billed calls, with the server's own 422 on bad bounds.
+   *
+   * The SDK checks these before sending, so this branch is only reachable by a
+   * caller going through the transport directly — which is exactly the case
+   * worth keeping honest.
+   */
+  #usage(query: Record<string, string | number | boolean>): TransportResponse {
+    const limit = query["limit"] === undefined ? 50 : Number(query["limit"]);
+    const cursor = query["cursor"] === undefined ? null : Number(query["cursor"]);
+
+    if (!(limit >= 1 && limit <= 100) || (cursor !== null && cursor < 1)) {
+      return { status_code: 422, body: { detail: "Input should be a valid page bound" } };
+    }
+
+    return { status_code: 200, body: fixtures.buildUsagePage(cursor, limit) };
   }
 
   // -- transcription ---------------------------------------------------

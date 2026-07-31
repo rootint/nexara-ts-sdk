@@ -61,7 +61,7 @@ export class FetchTransport implements Transport {
   ): Promise<TransportResponse> {
     // Build the URL ourselves rather than lean on URL joining: an absolute-path
     // reference would drop the "/v1" prefix.
-    const url = `${this.baseUrl}/${path.replace(/^\/+/, "")}`;
+    const url = `${this.baseUrl}/${path.replace(/^\/+/, "")}${queryString(options.query)}`;
     const headers = { Authorization: `Bearer ${this.apiKey}` };
 
     let attempt = 0;
@@ -165,6 +165,17 @@ function wireForm(form: Record<string, unknown>, data: FormData): void {
       data.append(key, String(value));
     }
   }
+}
+
+/** "?a=1&b=2", or "" when there is nothing to append. */
+function queryString(query: Record<string, string | number | boolean> | undefined): string {
+  if (query === undefined) return "";
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(query)) {
+    params.append(key, String(value));
+  }
+  const encoded = params.toString();
+  return encoded === "" ? "" : `?${encoded}`;
 }
 
 /** Parsed JSON for json-ish responses, a plain string for text/srt/vtt. */

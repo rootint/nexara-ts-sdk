@@ -21,8 +21,11 @@ export interface TransportResponse {
 }
 
 export interface RequestOptions {
+  /** Multipart body of a POST. */
   form?: Record<string, unknown>;
   file?: FileInput | null;
+  /** Query string of a GET — only the billing usage endpoint takes one. */
+  query?: Record<string, string | number | boolean>;
 }
 
 /** The only thing that touches the network — or pretends to. */

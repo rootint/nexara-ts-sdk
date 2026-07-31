@@ -159,6 +159,135 @@ export function wrapLlm(payload: Json, hasSchema: boolean): Json {
   };
 }
 
+// -- billing ---------------------------------------------------------------
+
+/**
+ * GET /billing/balance. rate_per_min is the per-second price × 60, as the
+ * server computes it.
+ */
+export const BALANCE: Json = { balance: 1240.5, rate_per_min: 0.36, currency: "RUB" };
+
+// GET /billing/usage rows, newest first — the order the server returns them in.
+// The leading number is the row id the cursor is keyed on; it is not part of the
+// item the server sends, which is why it is carried alongside rather than inside.
+const USAGE_ROWS: Array<[number, Json]> = [
+  [
+    207,
+    {
+      timestamp: "2026-02-11T09:41:02.512000+00:00",
+      seconds: 612.4,
+      bytes: 9812004,
+      task: "diarize",
+      model: "nexara-1",
+      language: "ru",
+      cost: 3.67,
+      profanity_filter: false,
+      role_tagging: true,
+      llm_input_tokens: null,
+      llm_output_tokens: null,
+      request_id: "b41f0a8c-2d0e-4d9b-9a41-2f6f2c9a1e77",
+      api_key: { id: 12, name: "production", deleted: false },
+    },
+  ],
+  [
+    206,
+    {
+      timestamp: "2026-02-11T08:03:44.108000+00:00",
+      seconds: 44.2,
+      bytes: 707200,
+      task: "transcribe",
+      model: "nexara-1",
+      language: "ru",
+      cost: 0.27,
+      profanity_filter: false,
+      role_tagging: false,
+      llm_input_tokens: 1204,
+      llm_output_tokens: 96,
+      request_id: "5f2a9f30-9b1e-4f0a-8a2d-7c4b1d6e0f11",
+      api_key: { id: 12, name: "production", deleted: false },
+    },
+  ],
+  [
+    205,
+    {
+      timestamp: "2026-02-10T19:22:17.900000+00:00",
+      seconds: 8.1,
+      bytes: 129600,
+      task: "transcribe",
+      model: "whisper-1",
+      language: "en",
+      cost: 0.05,
+      profanity_filter: true,
+      role_tagging: false,
+      llm_input_tokens: null,
+      llm_output_tokens: null,
+      request_id: "0c7c3a51-3f77-4a6c-91e0-1f5a2d8b4c33",
+      // A key that has since been deleted: the call stays in the history.
+      api_key: { id: 9, name: "Key #9", deleted: true },
+    },
+  ],
+  [
+    204,
+    {
+      timestamp: "2026-02-10T11:05:00.000000+00:00",
+      seconds: 120.0,
+      bytes: 1920000,
+      task: "transcribe",
+      model: "nexara-ru",
+      language: "ru",
+      // Written before per-request costs were recorded: null, not 0.
+      cost: null,
+      profanity_filter: false,
+      role_tagging: false,
+      llm_input_tokens: null,
+      llm_output_tokens: null,
+      request_id: null,
+      api_key: { id: 12, name: "production", deleted: false },
+    },
+  ],
+  [
+    203,
+    {
+      timestamp: "2026-02-09T15:47:31.220000+00:00",
+      seconds: 300.5,
+      bytes: 4808000,
+      task: "diarize",
+      model: "nexara-1",
+      language: "ru",
+      cost: 1.8,
+      profanity_filter: false,
+      role_tagging: false,
+      llm_input_tokens: null,
+      llm_output_tokens: null,
+      request_id: "9d1b7e42-6a55-4f18-b0c3-8e2f5a7d9b04",
+      api_key: { id: 3, name: "staging", deleted: false },
+    },
+  ],
+];
+
+export function buildBalance(): Json {
+  return { ...BALANCE };
+}
+
+/**
+ * Mirror of get_usage_page: keyset over the row id, newest first.
+ *
+ * `has_more` comes from fetching one row past the page, and `next_cursor` is
+ * set *only* when there is more — same as the server, so a client that pages on
+ * `next_cursor` alone terminates here exactly as it does in production.
+ */
+export function buildUsagePage(cursor: number | null, limit: number): Json {
+  const rows = USAGE_ROWS.filter(([id]) => cursor === null || id < cursor);
+  const hasMore = rows.length > limit;
+  const page = rows.slice(0, limit);
+  return {
+    items: page.map(([, item]) => ({ ...item })),
+    next_cursor: hasMore && page.length > 0 ? page[page.length - 1]![0] : null,
+    has_more: hasMore,
+    currency: BALANCE["currency"],
+  };
+}
+
 function title(text: string): string {
   return text.replace(/\b\w/g, (c) => c.toUpperCase());
 }

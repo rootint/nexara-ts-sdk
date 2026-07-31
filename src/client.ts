@@ -2,6 +2,7 @@
 
 import { FetchTransport } from "./http.js";
 import { MockTransport } from "./mock/transport.js";
+import { Billing } from "./resources/billing.js";
 import { Realtime } from "./resources/realtime.js";
 import { Transcriptions } from "./resources/transcriptions.js";
 import type { Transport } from "./transport.js";
@@ -59,6 +60,7 @@ export class Nexara {
   readonly apiKey: string;
   readonly baseUrl: string;
   readonly transcriptions: Transcriptions;
+  readonly billing: Billing;
   readonly realtime: Realtime;
 
   constructor(options: NexaraOptions = {}) {
@@ -86,6 +88,7 @@ export class Nexara {
           }));
 
     this.transcriptions = new Transcriptions(transport);
+    this.billing = new Billing(transport);
     this.realtime = new Realtime(this.apiKey);
   }
 }

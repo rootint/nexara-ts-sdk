@@ -46,6 +46,9 @@ export type {
   CreateJsonParams,
 } from "./resources/transcriptions.js";
 
+export { Billing, DEFAULT_USAGE_LIMIT, MAX_USAGE_LIMIT } from "./resources/billing.js";
+export type { UsageParams, IterUsageParams } from "./resources/billing.js";
+
 export { Realtime, RealtimeSession } from "./resources/realtime.js";
 
 export { Job, DEFAULT_WAIT_TIMEOUT_MS } from "./types/job.js";
@@ -60,6 +63,13 @@ export type {
   LLMResult,
 } from "./types/transcription.js";
 export type { DiarizedWord, DiarizedSegment, Diarization } from "./types/diarization.js";
+export type {
+  Currency,
+  Balance,
+  UsageApiKey,
+  UsageItem,
+  UsagePage,
+} from "./types/billing.js";
 export type { RealtimeEvent } from "./types/realtime.js";
 
 export type { Transport, TransportResponse, RequestOptions, FileInput } from "./transport.js";
