@@ -50,6 +50,21 @@ const DIARIZE_SEGMENTS: Json[] = [
   { start: 3.6, end: 8.14, text: "Да, у меня вопрос по заказу.", speaker: "speaker_1" },
 ];
 
+// Per-segment emotion, in the trimmed shape the server publishes: the backend's
+// scoring internals (windows, scored_seconds, group_size, unit_id,
+// out_of_distribution) are stripped by _public_emotion before they ever leave
+// apigateway, so a mock that included them would be describing an API that does
+// not exist. The second segment carries no emotion on purpose — the server
+// scores per segment and leaves the key off where it could not.
+const DIARIZE_EMOTIONS: Array<Json | null> = [
+  {
+    label: "neutral",
+    confidence: 0.87,
+    probs: { angry: 0.03, sad: 0.04, neutral: 0.87, positive: 0.06 },
+  },
+  null,
+];
+
 const DIARIZE_WORDS: Json[] = [
   { word: "Здравствуйте,", start: 0.0, end: 0.88, prob: 0.996, speaker: "speaker_0" },
   { word: "чем", start: 0.88, end: 1.12, prob: 0.993, speaker: "speaker_0" },
@@ -94,14 +109,24 @@ export function buildTranscribe(granularity: string): Json {
  * Diarization always requests word timestamps from the backend
  * (word_timestamps=True is hardcoded), so words are always built here. Whether
  * they survive into the response is decided later, per-endpoint.
+ *
+ * `emotions` mirrors the server exactly: the key is attached only when the
+ * request opted in, only to segments that were scored, and never to words.
  */
-export function buildDiarize(): Json {
+export function buildDiarize(emotions = false): Json {
+  const segments = clone(DIARIZE_SEGMENTS);
+  if (emotions) {
+    segments.forEach((segment, i) => {
+      const emotion = DIARIZE_EMOTIONS[i];
+      if (emotion) segment["emotion"] = { ...emotion };
+    });
+  }
   return {
     task: "diarize",
     language: "ru",
     duration: DIARIZE_DURATION,
     text: DIARIZE_TEXT,
-    segments: clone(DIARIZE_SEGMENTS),
+    segments,
     words: clone(DIARIZE_WORDS),
   };
 }
@@ -183,6 +208,7 @@ const USAGE_ROWS: Array<[number, Json]> = [
       cost: 3.67,
       profanity_filter: false,
       role_tagging: true,
+      emotions: false,
       llm_input_tokens: null,
       llm_output_tokens: null,
       request_id: "b41f0a8c-2d0e-4d9b-9a41-2f6f2c9a1e77",
@@ -201,6 +227,7 @@ const USAGE_ROWS: Array<[number, Json]> = [
       cost: 0.27,
       profanity_filter: false,
       role_tagging: false,
+      emotions: false,
       llm_input_tokens: 1204,
       llm_output_tokens: 96,
       request_id: "5f2a9f30-9b1e-4f0a-8a2d-7c4b1d6e0f11",
@@ -219,6 +246,7 @@ const USAGE_ROWS: Array<[number, Json]> = [
       cost: 0.05,
       profanity_filter: true,
       role_tagging: false,
+      emotions: false,
       llm_input_tokens: null,
       llm_output_tokens: null,
       request_id: "0c7c3a51-3f77-4a6c-91e0-1f5a2d8b4c33",
@@ -239,6 +267,7 @@ const USAGE_ROWS: Array<[number, Json]> = [
       cost: null,
       profanity_filter: false,
       role_tagging: false,
+      emotions: false,
       llm_input_tokens: null,
       llm_output_tokens: null,
       request_id: null,
@@ -252,11 +281,14 @@ const USAGE_ROWS: Array<[number, Json]> = [
       seconds: 300.5,
       bytes: 4808000,
       task: "diarize",
-      model: "nexara-1",
+      // emotions is only ever true alongside diarize on nexara-ru — the server
+      // rejects every other combination, so no other row can carry it.
+      model: "nexara-ru",
       language: "ru",
       cost: 1.8,
       profanity_filter: false,
       role_tagging: false,
+      emotions: true,
       llm_input_tokens: null,
       llm_output_tokens: null,
       request_id: "9d1b7e42-6a55-4f18-b0c3-8e2f5a7d9b04",

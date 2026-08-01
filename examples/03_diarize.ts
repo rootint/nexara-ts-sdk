@@ -45,3 +45,23 @@ const tagged = await client.transcriptions.create({
 for (const segment of tagged.segments) {
   console.log(`${segment.speaker}: ${segment.text}`);
 }
+
+// emotions: per-segment emotion recognition. Scoring happens inside the ASR
+// model, so this needs task="diarize" AND model="nexara-ru" AND a JSON response
+// format — anything else is a client-side error here (and a 400 on the server)
+// rather than a paid request that quietly returns no emotion.
+console.log();
+const scored = await client.transcriptions.create({
+  url: "https://example.com/call.mp3",
+  task: "diarize",
+  model: "nexara-ru",
+  emotions: true,
+});
+for (const segment of scored.segments) {
+  // Not every segment gets scored — check before reading. `probs` carries the
+  // full distribution when the backend sends it.
+  const emotion = segment.emotion
+    ? `${segment.emotion.label} ${Math.round(segment.emotion.confidence * 100)}%`
+    : "not scored";
+  console.log(`${segment.speaker}: ${segment.text} [${emotion}]`);
+}

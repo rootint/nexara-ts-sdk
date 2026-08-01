@@ -23,7 +23,8 @@ export interface Balance {
    *
    * The server stores a per-second price and multiplies by 60 for this field.
    * It covers plain transcription only: `profanity_filter`, `roles`
-   * (role_tagging) and `prompt` (LLM) each add a surcharge not reflected here.
+   * (role_tagging), `emotions` and `prompt` (LLM) each add a surcharge not
+   * reflected here.
    */
   rate_per_min: number;
   currency: Currency;
@@ -59,9 +60,15 @@ export interface UsageItem {
    * Treat null as "unknown", not "free".
    */
   cost: number | null;
-  /** Both are billed as surcharges on top of the per-minute rate. */
+  /** All three are billed as surcharges on top of the per-minute rate. */
   profanity_filter: boolean;
   role_tagging: boolean;
+  /**
+   * Whether emotion recognition *produced* output, not merely whether it was
+   * asked for: a call that requested it and got nothing back is not charged for
+   * it, and shows false here.
+   */
+  emotions: boolean;
   /** Set only when the call carried a `prompt`. Already folded into `cost`. */
   llm_input_tokens: number | null;
   llm_output_tokens: number | null;

@@ -101,7 +101,7 @@ export class MockTransport implements Transport {
 
     let payload: fixtures.Json | undefined;
     if (task === "diarize") {
-      payload = fixtures.buildDiarize();
+      payload = fixtures.buildDiarize(Boolean(form["emotions"]));
       if (sync) {
         // Only the sync handler strips. The Celery worker does not, so the same
         // request returns words via the async path. This one line is the whole

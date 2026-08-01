@@ -56,10 +56,18 @@ export interface CreateDiarizeParams extends BaseParams {
   timestamp_granularities?: Granularity[];
   num_speakers?: number | null;
   roles?: Roles | null;
+  /** Per-segment emotion. Also requires model: "nexara-ru". */
+  emotions?: boolean;
   diarization_setting?: "general" | "telephonic";
 }
 
-/** task="diarize", text/srt/vtt → string. */
+/**
+ * task="diarize", text/srt/vtt → string.
+ *
+ * No `emotions` here on purpose: subtitles have nowhere to carry the emotion
+ * object, so the server rejects the combination. Leaving it off the type turns
+ * that into a compile error instead of a runtime one.
+ */
 export interface CreateDiarizeStringParams extends BaseParams {
   task: "diarize";
   response_format: "text" | "srt" | "vtt";
@@ -119,6 +127,13 @@ export class Transcriptions {
    * `roles` turns on speaker role_tagging and requires task="diarize". Pass
    * "auto" to let the model invent labels, an array to restrict them, or an
    * object to add descriptions; arrays and objects are JSON-encoded for you.
+   *
+   * `emotions: true` attaches an `emotion` object to each diarized segment. The
+   * scoring happens inside the ASR model, so it needs task="diarize",
+   * model="nexara-ru" and a JSON response format — every other combination is a
+   * 400 (checked here first). It carries a per-second surcharge, but only for
+   * output actually delivered: the server drops the charge when the backend
+   * scored nothing.
    *
    * Not in the public docs (docs.nexara.ru) — supported by the server but
    * undocumented, so treat them as unstable and subject to change:

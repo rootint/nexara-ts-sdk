@@ -47,6 +47,33 @@ await client.transcriptions.create({
 });
 ```
 
+### Emotions
+
+`emotions: true` attaches an emotion to each diarized segment — `label` (one of
+`angry`, `sad`, `neutral`, `positive`), `confidence`, and the full `probs`
+distribution when the server sends it:
+
+```ts
+const call = await client.transcriptions.create({
+  file: "call.mp3",
+  task: "diarize",
+  model: "nexara-ru",
+  emotions: true,
+});
+for (const segment of call.segments) {
+  if (segment.emotion) {
+    console.log(segment.speaker, segment.emotion.label, segment.emotion.confidence);
+  }
+}
+```
+
+The scoring runs inside the ASR model, so it requires `task: "diarize"`,
+`model: "nexara-ru"` and a JSON response format; anything else throws
+`NexaraValidationError` before the upload (and the subtitle formats do not even
+accept the option in their types). Not every segment can be scored, so check
+`segment.emotion` rather than assuming it is there. It carries a per-second
+surcharge, charged only when emotion was actually returned.
+
 ## Long audio: deferred jobs
 
 `createJob()` submits the audio and returns immediately; the result is fetched
@@ -104,7 +131,7 @@ Paging is keyset-based, not offset-based: pass a page's `next_cursor` as
 `cursor` to get the next (older) page, so calls arriving mid-walk cannot shift
 rows across a page boundary. `item.cost` is `null` — not `0` — for rows written
 before per-request costs were recorded, and `rate_per_min` covers plain
-transcription only (`profanity_filter`, `roles` and `prompt` are surcharges on
+transcription only (`profanity_filter`, `roles`, `emotions` and `prompt` are surcharges on
 top of it).
 
 ## Errors and validation

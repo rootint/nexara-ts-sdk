@@ -5,7 +5,7 @@
  * not yet available. See docs/design.md.
  */
 
-export const VERSION = "0.3.0";
+export const VERSION = "0.4.0";
 
 export { Nexara, DEFAULT_BASE_URL } from "./client.js";
 export type { NexaraOptions } from "./client.js";
@@ -62,7 +62,13 @@ export type {
   VerboseTranscription,
   LLMResult,
 } from "./types/transcription.js";
-export type { DiarizedWord, DiarizedSegment, Diarization } from "./types/diarization.js";
+export type {
+  DiarizedWord,
+  DiarizedSegment,
+  Diarization,
+  Emotion,
+  EmotionLabel,
+} from "./types/diarization.js";
 export type {
   Currency,
   Balance,

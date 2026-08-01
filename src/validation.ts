@@ -49,6 +49,12 @@ export const MAX_ROLES = 10;
 export const MAX_ROLE_NAME_LEN = 64;
 export const MAX_ROLE_DESC_LEN = 500;
 
+// Emotion recognition runs inside the ASR model, so it exists only where that
+// model does. The server 400s every other combination rather than silently
+// returning no emotion, and so do we — for free.
+export const EMOTION_MODEL = "nexara-ru";
+export const EMOTION_RESPONSE_FORMATS: ReadonlySet<string> = new Set(["json", "verbose_json"]);
+
 // The server checks `language` against a fixed list of ~100 ISO-639-1 codes.
 // We deliberately do NOT mirror that list: we do not have it, and a guessed
 // copy that is missing a code would reject a language that actually works — a
@@ -72,6 +78,7 @@ export interface CreateParams {
   json_schema?: string | Record<string, unknown> | null;
   num_speakers?: number | null;
   roles?: Roles | null;
+  emotions?: boolean;
   diarization_setting?: "general" | "telephonic";
   model?: string;
 }
@@ -226,6 +233,33 @@ export function validateAndBuildForm(params: CreateParams): Record<string, unkno
   const rolesForm =
     params.roles !== undefined && params.roles !== null ? validateRoles(params.roles) : null;
 
+  const model = params.model ?? "whisper-1";
+
+  // --- emotions ---------------------------------------------------------
+  // Checked after the prompt block above, which can rewrite `fmt` — the server
+  // validates in the same order, so prompt and emotions combine there too.
+  const wantEmotions = params.emotions === true;
+  if (wantEmotions) {
+    if (task !== "diarize") {
+      fail("emotions: true requires task='diarize'. The server rejects it otherwise.");
+    }
+    if (model !== EMOTION_MODEL) {
+      fail(
+        `emotions: true requires model=${JSON.stringify(EMOTION_MODEL)} — emotion is ` +
+          `produced by that ASR model itself, and the server rejects any other. ` +
+          `Got model=${JSON.stringify(model)}.`,
+      );
+    }
+    if (!EMOTION_RESPONSE_FORMATS.has(fmt)) {
+      fail(
+        `emotions: true requires response_format in ` +
+          `${JSON.stringify([...EMOTION_RESPONSE_FORMATS].sort())} — the emotion object ` +
+          `hangs off each segment and ${JSON.stringify(fmt)} has nowhere to put it. The ` +
+          `server rejects the combination rather than bill you for output you cannot see.`,
+      );
+    }
+  }
+
   // --- build form -------------------------------------------------------
   const form: Record<string, unknown> = {
     task,
@@ -234,7 +268,7 @@ export function validateAndBuildForm(params: CreateParams): Record<string, unkno
     // by the server at all.
     "timestamp_granularities[]": gran,
     profanity_filter: params.profanity_filter ?? false,
-    model: params.model ?? "whisper-1",
+    model,
   };
   if (url !== null) form["url"] = url;
   if (lang !== null) form["language"] = lang;
@@ -245,6 +279,9 @@ export function validateAndBuildForm(params: CreateParams): Record<string, unkno
     form["diarization_setting"] = diarSetting;
     if (nSpeakers !== null) form["num_speakers"] = nSpeakers;
     if (rolesForm !== null) form["roles"] = rolesForm;
+    // Sent only when asked for. The field defaults to false server-side, so
+    // omitting it says exactly the same thing with one less form part.
+    if (wantEmotions) form["emotions"] = true;
   }
 
   return form;

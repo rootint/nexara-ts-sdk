@@ -14,12 +14,49 @@ export interface DiarizedWord extends Word {
   speaker: string;
 }
 
+/**
+ * The labels the server emits. It filters anything else out before the response
+ * is built, so this union is the whole set in practice.
+ *
+ * (The Python SDK types the same field as a plain `str`: pydantic validates at
+ * runtime, so pinning the set there would turn a new server label into a parse
+ * failure for the entire diarization. TypeScript types are erased, so a union is
+ * free here — it buys autocomplete and costs nothing at runtime.)
+ */
+export type EmotionLabel = "angry" | "sad" | "neutral" | "positive";
+
+/**
+ * Per-segment emotion, present only when `emotions: true` was requested.
+ *
+ * The server strips its scoring internals (windows, scored_seconds, group_size,
+ * unit_id, out_of_distribution) before sending, so what arrives is exactly these
+ * three fields.
+ */
+export interface Emotion {
+  label: EmotionLabel;
+  /** How sure the model is of `label`, 0..1. */
+  confidence: number;
+  /**
+   * Per-label probabilities. Absent when the backend did not send them —
+   * `label` and `confidence` always arrive.
+   */
+  probs?: Partial<Record<EmotionLabel, number>>;
+}
+
 /** Note the absence of everything Segment has beyond these four fields. */
 export interface DiarizedSegment {
   start: number;
   end: number;
   text: string;
   speaker: string;
+  /**
+   * Set only when the request passed `emotions: true`, and only on segments the
+   * model could actually score — a scored response can still contain segments
+   * without it, so check per segment rather than per response.
+   *
+   * Never present on `words`: emotion is scored over a segment's audio.
+   */
+  emotion?: Emotion;
 }
 
 /**
